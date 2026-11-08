@@ -1,0 +1,43 @@
+name: PolinRider scan
+
+# Shared scanner for the SignPresenter organization (adapted from ChurchApps/.github). Other repositories call this
+# workflow. This file also runs here, on the repository that holds the scanner.
+on:
+  workflow_call:
+  pull_request:
+  push:
+    branches: [main, master, production, release]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: polinrider-scan-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  polinrider-scan:
+    name: polinrider-scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout scanner
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: SignPresenter/.github
+          ref: main
+          path: scanner
+          persist-credentials: false
+
+      - name: Self-test scanner
+        run: python3 scanner/scripts/polinrider_scan.py --self-test
+
+      - name: Checkout repository under scan
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          path: target
+          persist-credentials: false
+
+      - name: Scan repository
+        run: python3 scanner/scripts/polinrider_scan.py target
